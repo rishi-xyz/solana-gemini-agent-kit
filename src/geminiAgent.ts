@@ -13,11 +13,42 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 export class GeminiAgent {
     private model: GenerativeModel;
     private chatSession: ChatSession | null = null;
+    private chatHistory: {
+        role: "user" | "model";
+        content: string
+    }[];
 
     constructor() {
         this.model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash"
         })
+        this.chatHistory = []
+    }
+
+    async chat(prompt: string): Promise<string> {
+        try {
+            this.chatHistory.push({ role: "user", content: prompt });
+            const result1 = await this.model.generateContentStream({
+                contents: this.chatHistory.map(({ role, content }) => ({
+                    role,
+                    parts: [{ text: content }]
+                })),
+            })
+            const result = await this.model.generateContent({
+                contents: this.chatHistory.map(({ role, content }) => ({
+                    role,
+                    parts: [{ text: content }]
+                })),
+            });
+            const response = result.response.text();
+
+            this.chatHistory.push({ role: "model", content: response });
+
+            return response;
+        } catch (error) {
+            console.error("Error in chat:", error);
+            return "Error generating response";
+        }
     }
 
     async generateTextStream(prompt: string, onData: (chunk: string) => void): Promise<void> {
