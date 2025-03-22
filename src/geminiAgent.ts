@@ -1,9 +1,11 @@
 import { ChatSession, GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+import * as fs from "fs";
 
 dotenv.config();
 
 const API_KEY = process.env.GEMINI_API_KEY;
+const MODEL_NAME = "gemini-2.0-flash";
 if (!API_KEY) {
     throw new Error("Missing GEMINI_API_KEY in .env file");
 }
@@ -16,24 +18,54 @@ export class GeminiAgent {
     private chatHistory: {
         role: "user" | "model";
         content: string
-    }[];
+    }[] = [];
+    private historyFile = "history.json";
 
     constructor() {
         this.model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash"
-        })
-        this.chatHistory = []
+            model: MODEL_NAME
+        });
+        this.loadHistory();
+
+    }
+
+    private loadHistory() {
+        if (fs.existsSync(this.historyFile)) {
+            const data = fs.readFileSync(this.historyFile, "utf-8");
+            this.chatHistory = JSON.parse(data);
+        }
+    }
+
+    private saveHistory() {
+        fs.writeFileSync(this.historyFile, JSON.stringify(this.chatHistory, null, 2));
+    }
+
+    async chatStream(prompt: string, callback: (chunk: string) => void): Promise<void> {
+        try {
+            this.chatHistory.push({
+                role: "user",
+                content: prompt
+            })
+            const chat = await this.model.generateContentStream({
+                contents: this.chatHistory.map(({ role, content }) => ({
+                    role,
+                    parts: [{ text: content }]
+                })),
+            });
+            for await (const chunk of chat.stream) {
+                if (chunk.text()) {
+                    callback(chunk.text());
+                }
+            }
+        } catch (error) {
+            console.error("Error generating streaming response:", error);
+            callback("Error generating response");
+        }
     }
 
     async chat(prompt: string): Promise<string> {
         try {
             this.chatHistory.push({ role: "user", content: prompt });
-            const result1 = await this.model.generateContentStream({
-                contents: this.chatHistory.map(({ role, content }) => ({
-                    role,
-                    parts: [{ text: content }]
-                })),
-            })
             const result = await this.model.generateContent({
                 contents: this.chatHistory.map(({ role, content }) => ({
                     role,
@@ -43,6 +75,7 @@ export class GeminiAgent {
             const response = result.response.text();
 
             this.chatHistory.push({ role: "model", content: response });
+            this.saveHistory();
 
             return response;
         } catch (error) {
