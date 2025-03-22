@@ -2,16 +2,15 @@ import { GeminiAgent } from "../src/geminiAgent";
 
 const agent = new GeminiAgent();
 
-async function testChat() {
-  await agent.startChat();
-
-  console.log("User: Hello!");
-  let response = await agent.sendMessage("Hello!");
-  console.log("Gemini:", response);
-
-  console.log("\nUser: What can you do?");
-  response = await agent.sendMessage("What can you do?");
-  console.log("Gemini:", response);
+async function testStreamingChat() {
+  console.log("User: Tell me a story about a lion in 50 words.");
+  await agent.generateTextStream(
+    "Tell me a story about a lion in 50 words.",
+    (chunk) => {
+      process.stdout.write(chunk);
+    }
+  );
+  console.log("\n\n End Of Response \n")
 }
 
-testChat();
+testStreamingChat();

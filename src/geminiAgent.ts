@@ -19,6 +19,21 @@ export class GeminiAgent {
             model: "gemini-2.0-flash"
         })
     }
+
+    async generateTextStream(prompt: string, onData: (chunk: string) => void): Promise<void> {
+        try {
+            const result = await this.model.generateContentStream(prompt);
+            for await (const chunk of result.stream) {
+                if (chunk.text()) {
+                    onData(chunk.text());
+                }
+            }
+        } catch (error) {
+            console.error("Error generating streaming response:", error);
+            onData("Error generating response");
+        }
+    }
+
     async generateText(prompt: string): Promise<string> {
         try {
             const result = await this.model.generateContent(prompt);
