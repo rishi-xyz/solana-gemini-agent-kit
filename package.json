@@ -1,0 +1,22 @@
+{
+  "name": "solana-gemini-agent-kit",
+  "version": "1.0.0",
+  "description": "A agent kit for solana protocol using google gemini",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --loader ts-node/esm examples/testGemini.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "dotenv": "^16.4.7"
+  }
+}
